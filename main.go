@@ -14,13 +14,11 @@ import (
 func main() {
 	l := log.New(os.Stdout, "product-api ", log.LstdFlags)
 
-	hh := handlers.NewHello(l)
-	gh := handlers.NewGoodbye(l)
+	ph := handlers.NewProducts(l)
 
 	// Custom ServeMux
 	sm := http.NewServeMux()
-	sm.Handle("/", hh)
-	sm.Handle("/goodbye", gh)
+	sm.Handle("/", ph)
 
 	// Customer server using the custom servemux
 	// With timeouts specified
@@ -49,6 +47,7 @@ func main() {
 
 	// Ensure a graceful timeout: If processes are running when an interrupt is received,
 	// Wait until those processes end or until the end of 30 seconds.
-	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	s.Shutdown(tc)
+	ctx, c := context.WithTimeout(context.Background(), 30*time.Second)
+	defer c()
+	s.Shutdown(ctx)
 }
