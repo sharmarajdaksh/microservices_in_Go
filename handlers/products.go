@@ -1,110 +1,91 @@
 package handlers
 
 import (
+	"context"
 	"go-microservice-basic/data"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
-// Products struct
+// Products is a http.Handler
 type Products struct {
 	l *log.Logger
 }
 
-// NewProducts creates a new Products handler with the custom logger
+// NewProducts creates a products handler with the given logger
 func NewProducts(l *log.Logger) *Products {
 	return &Products{l}
 }
 
-func (p *Products) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		p.getProducts(rw, r)
-		return
-	}
+// GetProducts returns the products from the data store
+func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
+	p.l.Println("Handle GET Products")
 
-	if r.Method == http.MethodPost {
-		p.addProduct(rw, r)
-		return
-	}
-
-	if r.Method == http.MethodPut {
-		p.l.Println("Handle POST")
-
-		// Get ID by parsing the URL
-		re := regexp.MustCompile(`/([0-9]+)`)
-		g := re.FindAllStringSubmatch(r.URL.Path, -1)
-
-		if len(g) != 1 {
-			http.Error(rw, "Invalid URI", http.StatusBadRequest)
-			return
-		}
-
-		if len(g[0]) != 2 {
-			http.Error(rw, "Invalid URI", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.Atoi(g[0][1])
-		if err != nil {
-			http.Error(rw, "Invalid URI", http.StatusBadRequest)
-			return
-		}
-
-		p.updateProducts(id, rw, r)
-	}
-
-	// Catch all
-	rw.WriteHeader(http.StatusMethodNotAllowed)
-}
-
-func (p *Products) getProducts(rw http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle GET")
-
+	// fetch the products from the datastore
 	lp := data.GetProducts()
 
+	// serialize the list to JSON
 	err := lp.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
-		return
 	}
 }
-func (p *Products) addProduct(rw http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle POST")
 
-	// Empty Product
-	prod := &data.Product{}
+// AddProduct adds a product on a POST request
+func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
+	p.l.Println("Handle POST Product")
 
-	// Why a reader, and not the complete body?
-	// Maybe the data is huge and the server hasn't received all of it when conversion starts
-	err := prod.FromJSON(r.Body)
-	if err != nil {
-		http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
-		return
-	}
-
-	data.AddProduct(prod)
+	prod := r.Context().Value(KeyProduct{}).(data.Product)
+	data.AddProduct(&prod)
 }
 
-func (p *Products) updateProducts(id int, rw http.ResponseWriter, r *http.Request) {
-	// Empty Product
-	prod := &data.Product{}
-
-	// Why a reader, and not the complete body?
-	// Maybe the data is huge and the server hasn't received all of it when conversion starts
-	err := prod.FromJSON(r.Body)
+// UpdateProducts updates a product on a PUT request
+func (p Products) UpdateProducts(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
+		http.Error(rw, "Unable to convert id", http.StatusBadRequest)
 		return
 	}
 
-	err = data.UpdateProduct(id, prod)
+	p.l.Println("Handle PUT Product", id)
+	prod := r.Context().Value(KeyProduct{}).(data.Product)
+
+	err = data.UpdateProduct(id, &prod)
 	if err == data.ErrProductNotFound {
 		http.Error(rw, "Product not found", http.StatusNotFound)
 		return
-	} else if err != nil {
-		http.Error(rw, "An error occurred", http.StatusBadRequest)
+	}
+
+	if err != nil {
+		http.Error(rw, "Product not found", http.StatusInternalServerError)
 		return
 	}
+}
+
+// KeyProduct struct is used as a value store for context
+type KeyProduct struct{}
+
+// MiddlewareValidateProduct validates the passed product JSON
+func (p Products) MiddlewareValidateProduct(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		prod := data.Product{}
+
+		err := prod.FromJSON(r.Body)
+		if err != nil {
+			p.l.Println("[ERROR] deserializing product", err)
+			http.Error(rw, "Error reading product", http.StatusBadRequest)
+			return
+		}
+
+		// add the product to the context
+		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
+		r = r.WithContext(ctx)
+
+		// Call the next handler, which can be another middleware in the chain, or the final handler.
+		next.ServeHTTP(rw, r)
+	})
 }

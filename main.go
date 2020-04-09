@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/gorilla/mux"
+
 	"go-microservice-basic/handlers"
 )
 
@@ -16,9 +18,22 @@ func main() {
 
 	ph := handlers.NewProducts(l)
 
-	// Custom ServeMux
-	sm := http.NewServeMux()
-	sm.Handle("/", ph)
+	// Custom ServeMux using gorilla/mux
+	sm := mux.NewRouter()
+
+	// .Methods("GET") filters requests to give us only GET requests
+	// The Subrouter converts this filtered routes as a router
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", ph.GetProducts)
+
+	putRouter := sm.Methods(http.MethodPut).Subrouter()
+	// Extract id from URL
+	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
+	putRouter.Use(ph.MiddlewareValidateProduct)
+
+	postRouter := sm.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/", ph.AddProduct)
+	postRouter.Use(ph.MiddlewareValidateProduct)
 
 	// Customer server using the custom servemux
 	// With timeouts specified
