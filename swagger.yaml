@@ -1,0 +1,16 @@
+basePath: /
+consumes:
+- application/json
+info:
+  description: Documentation of our Product API.
+  title: Product API.
+  version: 1.0.0
+paths: {}
+produces:
+- application/json
+schemes:
+- http
+securityDefinitions:
+  basic:
+    type: basic
+swagger: "2.0"

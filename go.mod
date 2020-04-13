@@ -1,4 +1,4 @@
-module go-microservice-basic
+module github.com/sharmarajdaksh/microservices_in_Go
 
 go 1.14
 

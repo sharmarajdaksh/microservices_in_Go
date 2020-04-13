@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"go-microservice-basic/handlers"
+	"github.com/sharmarajdaksh/microservices_in_Go/handlers"
 )
 
 func main() {
