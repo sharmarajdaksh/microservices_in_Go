@@ -6,7 +6,13 @@ import (
 	"github.com/sharmarajdaksh/microservices_in_Go/data"
 )
 
-func (p *Products) Delete(rw http.ResponseWriter, r *http.Request) {
+// swagger:route DELETE /products/{id} products deleteProduct
+// Returns a list of products
+// responses:
+//     201: noContent
+
+// DeleteProduct deletes a product from the database
+func (p *Products) DeleteProduct(rw http.ResponseWriter, r *http.Request) {
 	id := getProductID(r)
 
 	p.l.Println("[DEBUG] deleting record id", id)

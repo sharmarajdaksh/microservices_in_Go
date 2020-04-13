@@ -1,3 +1,4 @@
+// Package handlers comprises all the handlers
 // Package classification Product API.
 //
 // Documentation for Product API.

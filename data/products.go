@@ -10,8 +10,33 @@ import (
 	"github.com/go-playground/validator"
 )
 
+// A list of products
+// swagger:response productsResponse
+type productsResponse struct {
+	// All products in the system
+	// in: body
+	Body []Product
+}
+
+// swagger:response noContent
+type productsNoContent struct {
+}
+
+// swagger:parameters deleteProduct
+type productIDParameter struct {
+	// The id of the product to delete from the database
+	//in: path
+	// required: true
+	ID int `json:"id"`
+}
+
 // Product defines the structure for an API product
+// swagger:model
 type Product struct {
+	// The id of this user
+	//
+	// required: true
+	// min: 1
 	ID          int     `json:"id"`
 	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
