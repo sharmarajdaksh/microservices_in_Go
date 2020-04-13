@@ -3,16 +3,19 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/sharmarajdaksh/microservices_in_Go/data"
+	"github.com/nicholasjackson/building-microservices-youtube/product-api/data"
 )
 
 // swagger:route DELETE /products/{id} products deleteProduct
-// Returns a list of products
+// Update a products details
+//
 // responses:
-//     201: noContent
+//	201: noContentResponse
+//  404: errorResponse
+//  501: errorResponse
 
-// DeleteProduct deletes a product from the database
-func (p *Products) DeleteProduct(rw http.ResponseWriter, r *http.Request) {
+// Delete handles DELETE requests and removes items from the database
+func (p *Products) Delete(rw http.ResponseWriter, r *http.Request) {
 	id := getProductID(r)
 
 	p.l.Println("[DEBUG] deleting record id", id)
