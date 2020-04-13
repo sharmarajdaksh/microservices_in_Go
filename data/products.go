@@ -4,16 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"time"
+
+	"github.com/go-playground/validator"
 )
 
 // Product defines the structure for an API product
 type Product struct {
 	ID          int     `json:"id"`
-	Name        string  `json:"name"`
+	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
-	Price       float32 `json:"price"`
-	SKU         string  `json:"sku"`
+	Price       float32 `json:"price" validate:"required,gt=0"`
+	SKU         string  `json:"sku" validate:"required,sku"`
 	CreatedOn   string  `json:"-"`
 	UpdatedOn   string  `json:"-"`
 	DeletedOn   string  `json:"-"`
@@ -37,6 +40,28 @@ func (p *Products) ToJSON(w io.Writer) error {
 func (p *Product) FromJSON(r io.Reader) error {
 	d := json.NewDecoder(r)
 	return d.Decode(p)
+}
+
+// Validate JSON to protect against, say security vulnerabilities
+func (p *Product) Validate() error {
+	validate := validator.New()
+
+	// Custom validation that should return true or false
+	validate.RegisterValidation("sku", validateSKU, true)
+
+	return validate.Struct(p)
+}
+
+func validateSKU(fl validator.FieldLevel) bool {
+
+	// Sku is of format ass=asddf=asdf
+	re := regexp.MustCompile("[a-z]+-[a-z]+-[a-z]+")
+	matches := re.FindAllString(fl.Field().String(), -1)
+	if len(matches) != 1 {
+		return false
+	}
+
+	return true
 }
 
 // GetProducts returns a list of products
@@ -83,7 +108,7 @@ func getNextID() int {
 // productList is a hard coded list of products for this
 // example data source
 var productList = []*Product{
-	&Product{
+	{
 		ID:          1,
 		Name:        "Latte",
 		Description: "Frothy milky coffee",
@@ -92,7 +117,7 @@ var productList = []*Product{
 		CreatedOn:   time.Now().UTC().String(),
 		UpdatedOn:   time.Now().UTC().String(),
 	},
-	&Product{
+	{
 		ID:          2,
 		Name:        "Espresso",
 		Description: "Short and strong coffee without milk",
