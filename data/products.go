@@ -110,14 +110,14 @@ func findIndexByProductID(id int) int {
 }
 
 var productList = []*Product{
-	&Product{
+	{
 		ID:          1,
 		Name:        "Latte",
 		Description: "Frothy milky coffee",
 		Price:       2.45,
 		SKU:         "abc323",
 	},
-	&Product{
+	{
 		ID:          2,
 		Name:        "Esspresso",
 		Description: "Short and strong coffee without milk",
